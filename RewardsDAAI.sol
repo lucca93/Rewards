@@ -1,41 +1,62 @@
-// SPDX-License-Identifier: MIT LICENSE
-
-
-/*
-
+// SPDX-License-Identifier: MIT
+/**
+//////////////////////////////////////////
+/////////////DEAD ARITSTS AI//////////////
+//////////////////////////////////////////
 */
 
 pragma solidity 0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+contract DeadArtistsToken is ERC20, ERC20Burnable, Ownable {
+    using SafeMath for uint256;
+    mapping(address => uint256) private _balances;
+    mapping(address => bool) controllers;
 
-contract RewardsDAAI is ERC20, ERC20Burnable, Ownable {
+    uint256 private _totalSupply;
+    uint256 private maxSup;
+    uint256 constant maximumSupply = 1000000 * 10**18;
 
-  mapping(address => bool) controllers;
-  
-  constructor() ERC20("RewardsDAAI", "DAAIR") { }
+    constructor() ERC20("DeadArtistsToken", "DAAI") {}
 
-  function mint(address to, uint256 amount) external {
-    require(controllers[msg.sender], "Only controllers can mint");
-    _mint(to, amount);
-  }
+    function mint(address to, uint256 amount) external {
+        require(controllers[msg.sender], "Only controllers can mint");
+        require(
+            (maxSup + amount) <= maximumSupply,
+            "Maximum supply has been reached"
+        );
+        _totalSupply = _totalSupply.add(amount);
+        maxSup = maxSup.add(amount);
+        _balances[to] = _balances[to].add(amount);
 
-  function burnFrom(address account, uint256 amount) public override {
-      if (controllers[msg.sender]) {
-          _burn(account, amount);
-      }
-      else {
-          super.burnFrom(account, amount);
-      }
-  }
+        _mint(to, amount);
+    }
 
-  function addController(address controller) external onlyOwner {
-    controllers[controller] = true;
-  }
+    function burnFrom(address account, uint256 amount) public override {
+        if (controllers[msg.sender]) {
+            _burn(account, amount);
+        } else {
+            super.burnFrom(account, amount);
+        }
+    }
 
-  function removeController(address controller) external onlyOwner {
-    controllers[controller] = false;
-  }
+    function addController(address controller) external onlyOwner {
+        controllers[controller] = true;
+    }
+
+    function removeController(address controller) external onlyOwner {
+        controllers[controller] = false;
+    }
+
+    function totalSupply() public view override returns (uint256) {
+        return _totalSupply;
+    }
+
+    function maxSupply() public pure returns (uint256) {
+        return maximumSupply;
+    }
 }
